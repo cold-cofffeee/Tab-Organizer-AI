@@ -189,10 +189,27 @@ class SupabaseDataService {
         // Store in Supabase if configured
         if (this.isConfigured) {
             try {
+                console.log('🔄 Attempting to store in Supabase:', {
+                    cacheKey: cacheKey.substring(0, 20) + '...',
+                    domain: result.domain,
+                    category: result.category,
+                    url: this.supabaseUrl?.substring(0, 30) + '...'
+                });
+                
                 await this.storeInSupabase(cacheKey, result);
+                console.log('✅ Successfully stored in Supabase');
             } catch (error) {
-                console.warn('Failed to store in Supabase:', error);
+                console.error('❌ Failed to store in Supabase:', error);
+                console.error('Error details:', {
+                    message: error.message,
+                    status: error.status || 'unknown',
+                    configured: this.isConfigured,
+                    hasUrl: !!this.supabaseUrl,
+                    hasKey: !!this.supabaseKey
+                });
             }
+        } else {
+            console.warn('⚠️ Supabase not configured, skipping cloud storage');
         }
 
         return result;
@@ -224,7 +241,24 @@ class SupabaseDataService {
     }
 
     async storeInSupabase(key, result) {
-        if (!this.isConfigured) return;
+        if (!this.isConfigured) {
+            console.warn('⚠️ storeInSupabase called but not configured');
+            return;
+        }
+
+        const payload = {
+            cache_key: key,
+            result: result,
+            domain: result.domain,
+            category: result.category,
+            created_at: new Date().toISOString()
+        };
+
+        console.log('📤 Sending to Supabase:', {
+            url: `${this.supabaseUrl}/rest/v1/tab_categorizations`,
+            payload: payload,
+            keyLength: this.supabaseKey?.length
+        });
 
         try {
             const response = await fetch(`${this.supabaseUrl}/rest/v1/tab_categorizations`, {
@@ -235,20 +269,31 @@ class SupabaseDataService {
                     'Content-Type': 'application/json',
                     'Prefer': 'return=minimal'
                 },
-                body: JSON.stringify({
-                    cache_key: key,
-                    result: result,
-                    domain: result.domain,
-                    category: result.category,
-                    created_at: new Date().toISOString()
-                })
+                body: JSON.stringify(payload)
+            });
+
+            const responseText = await response.text();
+            console.log('📥 Supabase response:', {
+                status: response.status,
+                statusText: response.statusText,
+                ok: response.ok,
+                headers: Object.fromEntries(response.headers),
+                body: responseText
             });
 
             if (!response.ok) {
-                throw new Error(`Supabase write failed: ${response.status}`);
+                throw new Error(`Supabase write failed: ${response.status} - ${responseText}`);
             }
+
+            console.log('✅ Data successfully stored in Supabase');
         } catch (error) {
-            console.error('Supabase write error:', error);
+            console.error('❌ Supabase write error:', {
+                error: error.message,
+                stack: error.stack,
+                configured: this.isConfigured,
+                url: this.supabaseUrl,
+                keyPresent: !!this.supabaseKey
+            });
             throw error;
         }
     }

@@ -13,7 +13,7 @@ class GeminiAIService {
         
         // Initialize enhanced data service
         this.dataService = null;
-        this.initDataService();
+        setTimeout(() => this.initDataService(), 100); // Delay to ensure all scripts loaded
         
         this.categories = {
             'social': {
@@ -71,15 +71,29 @@ class GeminiAIService {
 
     async initDataService() {
         try {
+            console.log('🔧 Initializing data service...');
+            console.log('SupabaseDataService available:', typeof SupabaseDataService !== 'undefined');
+            
             // Load the Supabase service
             if (typeof SupabaseDataService !== 'undefined') {
                 this.dataService = new SupabaseDataService();
-                console.log('Enhanced data service initialized');
+                console.log('✅ Enhanced data service initialized');
+                
+                // Wait a moment for async initialization
+                setTimeout(() => {
+                    if (this.dataService) {
+                        console.log('🔧 Data service status:', {
+                            configured: this.dataService.isConfigured,
+                            hasUrl: !!this.dataService.supabaseUrl,
+                            hasKey: !!this.dataService.supabaseKey
+                        });
+                    }
+                }, 1000);
             } else {
-                console.warn('SupabaseDataService not available, using legacy cache only');
+                console.warn('⚠️ SupabaseDataService not available, using legacy cache only');
             }
         } catch (error) {
-            console.error('Failed to initialize data service:', error);
+            console.error('❌ Failed to initialize data service:', error);
         }
     }
 
@@ -293,6 +307,12 @@ class GeminiAIService {
             // Store in enhanced cache (if available)
             if (this.dataService) {
                 try {
+                    console.log('📝 Storing new categorization in enhanced cache:', {
+                        url: tabData.url,
+                        category: category,
+                        hasDataService: !!this.dataService,
+                        serviceConfigured: this.dataService.isConfigured
+                    });
                     await this.dataService.storeCategorization(tabData, category);
                     console.log('Stored categorization in enhanced cache');
                 } catch (error) {
