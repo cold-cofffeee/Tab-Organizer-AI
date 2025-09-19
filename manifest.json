@@ -68,7 +68,8 @@
     {
       "resources": [
         "content.js",
-        "scripts/config.js"
+        "scripts/config.js",
+        "debug-supabase.js"
       ],
       "matches": ["<all_urls>"]
     }
