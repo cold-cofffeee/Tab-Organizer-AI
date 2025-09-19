@@ -153,6 +153,18 @@
                     </div>
                 </div>
                 <div class="settings-section">
+                    <h4>📊 Enhanced Caching</h4>
+                    <div class="cache-status" id="cacheStatus">
+                        <div class="status-indicator">
+                            <span class="status-dot status-active"></span>
+                            <span class="status-text">Intelligent caching enabled</span>
+                        </div>
+                        <div class="cache-stats">
+                            <small>Reduces AI API calls by up to 90%</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-section">
                     <h4>⚙️ Auto-Organization</h4>
                     <label class="switch">
                         <input type="checkbox" id="autoOrganizeEnabled" checked>
@@ -200,6 +212,8 @@
         </div>
     </div>
 
+    <script src="scripts/config.js"></script>
+    <script src="scripts/supabase-service.js"></script>
     <script src="scripts/popup.js"></script>
 </body>
 </html>

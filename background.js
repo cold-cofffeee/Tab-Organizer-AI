@@ -1,4 +1,6 @@
-// Import the Gemini AI service
+// Import the services
+importScripts('scripts/config.js');
+importScripts('scripts/supabase-service.js');
 importScripts('scripts/gemini-ai.js');
 
 // Tab Organizer AI - Background Service Worker
@@ -367,5 +369,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         .then(() => sendResponse({ success: true }))
         .catch(error => sendResponse({ success: false, error: error.message }));
       return true;
+
+    // Enhanced caching is automatically configured
   }
 });

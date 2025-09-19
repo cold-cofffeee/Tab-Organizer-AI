@@ -8,8 +8,12 @@ class GeminiAIService {
             resetTime: Date.now() + 60000 // 1 minute window
         };
         this.maxRequestsPerMinute = 50; // Conservative limit
-        this.cache = new Map(); // Cache results to reduce API calls
+        this.cache = new Map(); // Legacy cache for backward compatibility
         this.maxCacheSize = 500;
+        
+        // Initialize enhanced data service
+        this.dataService = null;
+        this.initDataService();
         
         this.categories = {
             'social': {
@@ -60,8 +64,23 @@ class GeminiAIService {
     }
 
     async initialize() {
+        await this.initDataService();
         await this.loadApiKey();
         await this.loadCache();
+    }
+
+    async initDataService() {
+        try {
+            // Load the Supabase service
+            if (typeof SupabaseDataService !== 'undefined') {
+                this.dataService = new SupabaseDataService();
+                console.log('Enhanced data service initialized');
+            } else {
+                console.warn('SupabaseDataService not available, using legacy cache only');
+            }
+        } catch (error) {
+            console.error('Failed to initialize data service:', error);
+        }
     }
 
     async loadApiKey() {
@@ -231,11 +250,35 @@ class GeminiAIService {
             return this.fallbackCategorization(tabData);
         }
 
-        // Check cache first
+        // Check enhanced cache first (if available)
+        if (this.dataService) {
+            try {
+                const cachedResult = await this.dataService.getCachedCategorization(tabData);
+                if (cachedResult) {
+                    console.log('Using enhanced cache result for:', tabData.url);
+                    return cachedResult.category;
+                }
+            } catch (error) {
+                console.warn('Enhanced cache lookup failed:', error);
+            }
+        }
+
+        // Fallback to legacy cache
         const cacheKey = this.generateCacheKey(tabData.url, tabData.title, tabData.content || '');
         if (this.cache.has(cacheKey)) {
-            console.log('Using cached categorization result');
-            return this.cache.get(cacheKey);
+            console.log('Using legacy cached categorization result');
+            const result = this.cache.get(cacheKey);
+            
+            // Migrate to enhanced cache if available
+            if (this.dataService) {
+                try {
+                    await this.dataService.storeCategorization(tabData, result);
+                } catch (error) {
+                    console.warn('Failed to migrate to enhanced cache:', error);
+                }
+            }
+            
+            return result;
         }
 
         // Check rate limiting
@@ -247,7 +290,17 @@ class GeminiAIService {
         try {
             const category = await this.callGeminiAPI(tabData);
             
-            // Cache the result
+            // Store in enhanced cache (if available)
+            if (this.dataService) {
+                try {
+                    await this.dataService.storeCategorization(tabData, category);
+                    console.log('Stored categorization in enhanced cache');
+                } catch (error) {
+                    console.warn('Failed to store in enhanced cache:', error);
+                }
+            }
+            
+            // Also store in legacy cache for backward compatibility
             this.cache.set(cacheKey, category);
             
             // Manage cache size
@@ -507,16 +560,40 @@ Category:`;
     }
 
     async getCacheStats() {
-        return {
+        const legacyStats = {
             size: this.cache.size,
             maxSize: this.maxCacheSize,
             hitRate: this.cache.size > 0 ? 'Available' : 'Empty'
         };
+
+        if (this.dataService) {
+            try {
+                const enhancedStats = await this.dataService.getCacheStats();
+                return {
+                    legacy: legacyStats,
+                    enhanced: enhancedStats
+                };
+            } catch (error) {
+                console.warn('Failed to get enhanced cache stats:', error);
+            }
+        }
+
+        return { legacy: legacyStats };
     }
 
     async clearCache() {
         this.cache.clear();
         await chrome.storage.local.remove(['aiCategorizeCache']);
+        
+        // Also clear enhanced cache if available
+        if (this.dataService) {
+            try {
+                await this.dataService.clearAllCaches();
+                console.log('Enhanced cache cleared');
+            } catch (error) {
+                console.warn('Failed to clear enhanced cache:', error);
+            }
+        }
     }
 }
 

@@ -146,6 +146,8 @@ class TabOrganizerPopup {
         if (clearApiKey) clearApiKey.addEventListener('click', (e) => this.debounce(() => this.clearApiKey(), e.target));
         if (clearAiCache) clearAiCache.addEventListener('click', (e) => this.debounce(() => this.clearAiCache(), e.target));
 
+        // Enhanced caching is automatically configured with encrypted credentials
+
         // Click outside to close
         window.addEventListener('click', (e) => {
             if (e.target.classList.contains('modal')) {
@@ -803,12 +805,18 @@ class TabOrganizerPopup {
 
     showLoading(message = 'Loading...') {
         const loading = document.getElementById('loadingIndicator');
-        loading.querySelector('span').textContent = message;
-        loading.style.display = 'flex';
+        if (loading) {
+            const span = loading.querySelector('span');
+            if (span) span.textContent = message;
+            loading.style.display = 'flex';
+        }
     }
 
     hideLoading() {
-        document.getElementById('loadingIndicator').style.display = 'none';
+        const loading = document.getElementById('loadingIndicator');
+        if (loading) {
+            loading.style.display = 'none';
+        }
     }
 
     showSuccess(message) {
