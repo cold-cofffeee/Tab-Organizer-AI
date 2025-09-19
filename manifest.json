@@ -1,0 +1,72 @@
+{
+  "manifest_version": 3,
+  "name": "Tab Organizer AI",
+  "version": "1.0.0",
+  "description": "Use AI to analyze and automatically organize your tabs by topic, project, or task to reduce clutter and improve workflow.",
+  
+  "permissions": [
+    "tabs",
+    "storage",
+    "activeTab",
+    "tabGroups",
+    "scripting",
+    "offscreen"
+  ],
+  
+  "host_permissions": [
+    "<all_urls>",
+    "https://generativelanguage.googleapis.com/*"
+  ],
+  
+  "background": {
+    "service_worker": "background.js"
+  },
+  
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Tab Organizer AI"
+  },
+  
+  "commands": {
+    "organize-tabs": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+O"
+      },
+      "description": "Organize tabs automatically"
+    },
+    "quick-group": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+G"
+      },
+      "description": "Quick group current tab"
+    },
+    "search-tabs": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+F"
+      },
+      "description": "Search tabs"
+    }
+  },
+  
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  
+  "web_accessible_resources": [
+    {
+      "resources": ["content.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

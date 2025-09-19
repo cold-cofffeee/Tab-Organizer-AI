@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tab Organizer AI</title>
+    <link rel="stylesheet" href="styles/popup.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-title">
+                <h1>Tab Organizer AI</h1>
+                <span class="version">v1.0</span>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary" id="organizeBtn" title="Organize All Tabs (Ctrl+Shift+O)">
+                    <span class="icon">🤖</span>
+                    Organize
+                </button>
+                <button class="btn btn-secondary" id="settingsBtn" title="Settings">
+                    <span class="icon">⚙️</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Search Bar -->
+        <div class="search-container">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="searchInput" placeholder="Search tabs by title, URL, or group..." />
+                <button class="clear-search" id="clearSearch">✕</button>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <button class="quick-btn" id="saveGroupBtn">
+                <span class="icon">💾</span>
+                Save Groups
+            </button>
+            <button class="quick-btn" id="restoreGroupBtn">
+                <span class="icon">📁</span>
+                Restore
+            </button>
+            <button class="quick-btn" id="cleanupBtn">
+                <span class="icon">🧹</span>
+                Cleanup
+            </button>
+        </div>
+
+        <!-- Tab Groups Container -->
+        <div class="groups-container" id="groupsContainer">
+            <div class="loading" id="loadingIndicator">
+                <div class="spinner"></div>
+                <span>Analyzing tabs...</span>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="stats" id="statsContainer">
+                <span id="tabCount">0 tabs</span>
+                <span id="groupCount">0 groups</span>
+            </div>
+            <div class="shortcuts-hint">
+                <span>Press Ctrl+Shift+O to organize</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal" id="createGroupModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create Custom Group</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="groupName">Group Name:</label>
+                    <input type="text" id="groupName" placeholder="Enter group name..." />
+                </div>
+                <div class="form-group">
+                    <label for="groupColor">Color:</label>
+                    <div class="color-picker">
+                        <button class="color-option" data-color="blue" style="background-color: #4285f4;"></button>
+                        <button class="color-option" data-color="red" style="background-color: #ea4335;"></button>
+                        <button class="color-option" data-color="green" style="background-color: #34a853;"></button>
+                        <button class="color-option" data-color="yellow" style="background-color: #fbbc05;"></button>
+                        <button class="color-option" data-color="purple" style="background-color: #9c27b0;"></button>
+                        <button class="color-option" data-color="orange" style="background-color: #ff9800;"></button>
+                        <button class="color-option" data-color="cyan" style="background-color: #00bcd4;"></button>
+                        <button class="color-option" data-color="grey" style="background-color: #9e9e9e;"></button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Selected Tabs:</label>
+                    <div class="selected-tabs" id="selectedTabsList"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelCreateGroup">Cancel</button>
+                <button class="btn btn-primary" id="confirmCreateGroup">Create Group</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Settings</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h4>🤖 AI Configuration</h4>
+                    <div class="ai-status" id="aiStatus">
+                        <div class="status-indicator" id="statusIndicator">
+                            <span class="status-dot"></span>
+                            <span id="statusText">Checking AI status...</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="geminiApiKey">Gemini AI API Key:</label>
+                        <div class="api-key-input">
+                            <input type="password" id="geminiApiKey" placeholder="Enter your Gemini API key..." />
+                            <button type="button" class="toggle-visibility" id="toggleApiKey">👁️</button>
+                        </div>
+                        <small class="help-text">
+                            Get your free API key from <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a>
+                        </small>
+                    </div>
+                    <div class="api-actions">
+                        <button class="btn btn-secondary" id="testApiKey">Test API Key</button>
+                        <button class="btn btn-primary" id="saveApiKey">Save API Key</button>
+                        <button class="btn btn-danger" id="clearApiKey">Clear Key</button>
+                    </div>
+                    <div class="ai-stats" id="aiStats" style="display: none;">
+                        <h5>AI Performance</h5>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <span class="stat-label">Cache Size:</span>
+                                <span id="cacheSize">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Status:</span>
+                                <span id="aiPerformance">Ready</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-secondary btn-sm" id="clearAiCache">Clear Cache</button>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h4>⚙️ Auto-Organization</h4>
+                    <label class="switch">
+                        <input type="checkbox" id="autoOrganizeEnabled" checked>
+                        <span class="slider"></span>
+                        Enable automatic tab organization
+                    </label>
+                </div>
+                <div class="settings-section">
+                    <h4>🧹 Cleanup Settings</h4>
+                    <div class="form-group">
+                        <label for="unusedTabThreshold">Mark tabs as unused after:</label>
+                        <select id="unusedTabThreshold">
+                            <option value="1">1 day</option>
+                            <option value="3">3 days</option>
+                            <option value="7" selected>7 days</option>
+                            <option value="14">14 days</option>
+                            <option value="30">30 days</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h4>⌨️ Keyboard Shortcuts</h4>
+                    <div class="shortcut-list">
+                        <div class="shortcut-item">
+                            <span>Organize tabs:</span>
+                            <code>Ctrl+Shift+O</code>
+                        </div>
+                        <div class="shortcut-item">
+                            <span>Quick group:</span>
+                            <code>Ctrl+Shift+G</code>
+                        </div>
+                        <div class="shortcut-item">
+                            <span>Search tabs:</span>
+                            <code>Ctrl+Shift+F</code>
+                        </div>
+                    </div>
+                    <small class="help-text">
+                        <a href="chrome://extensions/shortcuts" target="_blank">Customize shortcuts in Chrome</a>
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="saveSettings">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="scripts/popup.js"></script>
+</body>
+</html>
