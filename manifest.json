@@ -3,7 +3,6 @@
   "name": "Tab Organizer AI",
   "version": "1.0.0",
   "description": "Use AI to analyze and automatically organize your tabs by topic, project, or task to reduce clutter and improve workflow.",
-  
   "permissions": [
     "tabs",
     "storage",
@@ -12,30 +11,31 @@
     "scripting",
     "offscreen"
   ],
-  
   "host_permissions": [
     "<all_urls>",
     "https://generativelanguage.googleapis.com/*",
-    "https://*.supabase.co/*"
+    "https://*.firebaseio.com/*",
+    "https://*.firebasestorage.app/*",
+    "https://www.gstatic.com/*"
   ],
-  
   "background": {
     "service_worker": "background.js"
   },
-  
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_idle"
     }
   ],
-  
   "action": {
     "default_popup": "popup.html",
     "default_title": "Tab Organizer AI"
   },
-  
   "commands": {
     "organize-tabs": {
       "suggested_key": {
@@ -56,22 +56,24 @@
       "description": "Search tabs"
     }
   },
-  
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
-  
   "web_accessible_resources": [
     {
       "resources": [
         "content.js",
-        "scripts/config.js",
-        "debug-supabase.js"
+        "scripts/config.js"
       ],
-      "matches": ["<all_urls>"]
+      "matches": [
+        "<all_urls>"
+      ]
     }
-  ]
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' https://www.gstatic.com/ https://*.firebaseio.com https://www.googleapis.com; object-src 'self'"
+  }
 }
