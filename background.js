@@ -1,10 +1,6 @@
-// Import Firebase SDKs
-importScripts('https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js');
-importScripts('https://www.gstatic.com/firebasejs/12.3.0/firebase-database.js');
-
 // Import the services
 importScripts('scripts/config.js');
-importScripts('scripts/firebase-service.js');
+importScripts('scripts/local-storage.js');
 importScripts('scripts/gemini-ai.js');
 
 // Tab Organizer AI - Background Service Worker
@@ -12,7 +8,7 @@ class TabOrganizerAI {
   constructor() {
     this.tabGroups = new Map();
     this.geminiAI = new GeminiAIService();
-    this.dataService = new FirebaseDataService();
+    this.dataService = new LocalDataService();
     this.tabCategories = {}; // Will be populated from Gemini AI service
     this.init();
   }

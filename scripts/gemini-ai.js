@@ -3,6 +3,7 @@ class GeminiAIService {
     constructor() {
         this.apiEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
         this.apiKey = null;
+        this.configService = new ConfigService();
         this.rateLimitTracker = {
             requests: 0,
             resetTime: Date.now() + 60000 // 1 minute window
@@ -71,26 +72,14 @@ class GeminiAIService {
 
     async initDataService() {
         try {
-            console.log('🔧 Initializing data service...');
-            console.log('SupabaseDataService available:', typeof SupabaseDataService !== 'undefined');
+            console.log('🔧 Initializing local data service...');
             
-            // Load the Supabase service
-            if (typeof SupabaseDataService !== 'undefined') {
-                this.dataService = new SupabaseDataService();
-                console.log('✅ Enhanced data service initialized');
-                
-                // Wait a moment for async initialization
-                setTimeout(() => {
-                    if (this.dataService) {
-                        console.log('🔧 Data service status:', {
-                            configured: this.dataService.isConfigured,
-                            hasUrl: !!this.dataService.supabaseUrl,
-                            hasKey: !!this.dataService.supabaseKey
-                        });
-                    }
-                }, 1000);
+            // Use the local data service
+            if (typeof localDataService !== 'undefined') {
+                this.dataService = localDataService;
+                console.log('✅ Local data service initialized');
             } else {
-                console.warn('⚠️ SupabaseDataService not available, using legacy cache only');
+                console.warn('⚠️ Local data service not available, using in-memory cache only');
             }
         } catch (error) {
             console.error('❌ Failed to initialize data service:', error);
@@ -99,10 +88,8 @@ class GeminiAIService {
 
     async loadApiKey() {
         try {
-            const result = await chrome.storage.local.get(['geminiApiKey']);
-            if (result.geminiApiKey) {
-                this.apiKey = await this.decryptApiKey(result.geminiApiKey);
-            }
+            const config = await this.configService.getGeminiConfig();
+            this.apiKey = config.apiKey;
         } catch (error) {
             console.error('Error loading API key:', error);
         }
@@ -110,10 +97,11 @@ class GeminiAIService {
 
     async saveApiKey(apiKey) {
         try {
-            const encryptedKey = await this.encryptApiKey(apiKey);
-            await chrome.storage.local.set({ geminiApiKey: encryptedKey });
-            this.apiKey = apiKey;
-            return true;
+            const success = await this.configService.setGeminiApiKey(apiKey);
+            if (success) {
+                this.apiKey = apiKey;
+            }
+            return success;
         } catch (error) {
             console.error('Error saving API key:', error);
             return false;
@@ -122,88 +110,14 @@ class GeminiAIService {
 
     async clearApiKey() {
         try {
-            await chrome.storage.local.remove(['geminiApiKey']);
-            this.apiKey = null;
-            return true;
+            const success = await this.configService.clearApiKey();
+            if (success) {
+                this.apiKey = null;
+            }
+            return success;
         } catch (error) {
             console.error('Error clearing API key:', error);
             return false;
-        }
-    }
-
-    // Simple encryption for API key (browser-based)
-    async encryptApiKey(apiKey) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(apiKey);
-        
-        // Generate a key from a fixed string + random salt
-        const salt = crypto.getRandomValues(new Uint8Array(16));
-        const keyMaterial = await crypto.subtle.importKey(
-            'raw',
-            encoder.encode('tab-organizer-ai-encryption-key'),
-            { name: 'PBKDF2' },
-            false,
-            ['deriveKey']
-        );
-        
-        const key = await crypto.subtle.deriveKey(
-            { name: 'PBKDF2', salt: salt, iterations: 100000, hash: 'SHA-256' },
-            keyMaterial,
-            { name: 'AES-GCM', length: 256 },
-            false,
-            ['encrypt']
-        );
-        
-        const iv = crypto.getRandomValues(new Uint8Array(12));
-        const encrypted = await crypto.subtle.encrypt(
-            { name: 'AES-GCM', iv: iv },
-            key,
-            data
-        );
-        
-        // Combine salt, iv, and encrypted data
-        const combined = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
-        combined.set(salt, 0);
-        combined.set(iv, salt.length);
-        combined.set(new Uint8Array(encrypted), salt.length + iv.length);
-        
-        return btoa(String.fromCharCode(...combined));
-    }
-
-    async decryptApiKey(encryptedData) {
-        try {
-            const combined = new Uint8Array(atob(encryptedData).split('').map(c => c.charCodeAt(0)));
-            const salt = combined.slice(0, 16);
-            const iv = combined.slice(16, 28);
-            const encrypted = combined.slice(28);
-            
-            const encoder = new TextEncoder();
-            const keyMaterial = await crypto.subtle.importKey(
-                'raw',
-                encoder.encode('tab-organizer-ai-encryption-key'),
-                { name: 'PBKDF2' },
-                false,
-                ['deriveKey']
-            );
-            
-            const key = await crypto.subtle.deriveKey(
-                { name: 'PBKDF2', salt: salt, iterations: 100000, hash: 'SHA-256' },
-                keyMaterial,
-                { name: 'AES-GCM', length: 256 },
-                false,
-                ['decrypt']
-            );
-            
-            const decrypted = await crypto.subtle.decrypt(
-                { name: 'AES-GCM', iv: iv },
-                key,
-                encrypted
-            );
-            
-            return new TextDecoder().decode(decrypted);
-        } catch (error) {
-            console.error('Error decrypting API key:', error);
-            return null;
         }
     }
 
